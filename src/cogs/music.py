@@ -55,6 +55,24 @@ class Music(commands.Cog):
                 await interaction.response.send_message(content="Skipping song...")
                 self.play_next(interaction)
 
+    @app_commands.command(name = 'queue', description = "View the song queue")
+    async def queue(self, interaction: discord.Interaction) -> None:
+        queue = self.song_queue
+        if queue.empty():
+            await interaction.response.send_message(content = 'No songs in the queue')
+            return
+        field_list = []
+        while queue.qsize() > 0:
+            song = queue.get_nowait()
+            field_list.append(song['title'])
+        embed = discord.Embed(
+            color = discord.Colour.purple(),
+            title = 'Up Next:',
+        )
+        for i, item in enumerate(field_list):
+            embed.add_field(name = f'{i}. {item}', inline = False)
+        await interaction.response.send_message(embed = embed)
+
     def play_next(self, interaction: discord.Interaction):
         if not self.song_queue.empty():
             song = self.song_queue.get_nowait()
@@ -65,9 +83,8 @@ class Music(commands.Cog):
             asyncio.run_coroutine_threadsafe(asyncio.sleep(90), self.event_loop)
             if not self.audio_client.is_playing():
                 asyncio.run_coroutine_threadsafe(self.audio_client.disconnect(), self.event_loop)
+                self.audio_client = None
                 asyncio.run_coroutine_threadsafe(interaction.channel.send(embed = self.embed_leaving_channel_idle()), self.event_loop)
-
-
 
     def download_song(self, query : str):
         video_prefix = 'https://www.youtube.com/watch?v='
