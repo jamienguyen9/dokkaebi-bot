@@ -14,7 +14,7 @@ class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.audio_client = None
-        self.song_queue = asyncio.Queue()
+        self.song_queue = []
         self.event_loop = asyncio.get_event_loop()
 
     @app_commands.command(name = 'play', description= 'Play a song')
@@ -27,16 +27,18 @@ class Music(commands.Cog):
             if self.audio_client is None:
                 self.audio_client = await voice_channel.connect()
 
+            #TODO create case where two people are using the bot in different channels
+
             # Download Song
             song = self.download_song(query)
             song['requestor'] = interaction.user.mention
-            await self.song_queue.put(song)            
+            self.song_queue.append(song)        
             
             # Check if client is currently playing audio
             if self.audio_client.is_playing():
                 await interaction.response.send_message(embed = self.embed_add_to_queue(song))
             else:
-                song = await self.song_queue.get()
+                song = self.song_queue.pop(0)
                 audio_source = discord.FFmpegPCMAudio(song['source'], **Music.FFMPEG_OPTIONS)
                 self.audio_client.play(audio_source, after = lambda e: self.play_next(interaction))
                 await interaction.response.send_message(embed = self.embed_now_playing(song))
@@ -47,40 +49,47 @@ class Music(commands.Cog):
     async def skip(self, interaction: discord.Interaction) -> None:
         voice_state = interaction.user.voice
         if voice_state:
-            if self.song_queue.empty():
+            if not self.song_queue:
                 embed = self.embed_no_more_song()
                 await interaction.response.send_message(embed = embed)
             else:
-                self.audio_client.stop()
+                await self.audio_client.stop()
                 await interaction.response.send_message(content="Skipping song...")
                 self.play_next(interaction)
 
     @app_commands.command(name = 'queue', description = "View the song queue")
     async def queue(self, interaction: discord.Interaction) -> None:
-        queue = self.song_queue
-        if queue.empty():
-            await interaction.response.send_message(content = 'No songs in the queue')
+        if not self.song_queue:
+            await interaction.response.send_message(embed = self.embed_no_songs())
             return
-        field_list = []
-        while queue.qsize() > 0:
-            song = queue.get_nowait()
-            field_list.append(song['title'])
         embed = discord.Embed(
             color = discord.Colour.purple(),
             title = 'Up Next:',
         )
-        for i, item in enumerate(field_list):
-            embed.add_field(name = f'{i}. {item}', inline = False)
+        for i, item in enumerate(self.song_queue):
+            embed.add_field(name = '{}. `{}`'.format(i, item['title']), value = '', inline = False)
         await interaction.response.send_message(embed = embed)
 
+    @app_commands.command(name = 'remove', description = 'Remove a song in the queue')
+    async def remove(self, interaction: discord.Interaction, position : int) -> None:
+        if not self.song_queue:
+            await interaction.response.send_message(embed = self.embed_no_songs())
+            return
+        if position > len(self.song_queue):
+            await interaction.response.send_message(content = 'The position you entered is not in this queue. Please try again')
+            return
+        song = self.song_queue.pop(position - 1)['title']
+        await interaction.response.send_message(embed = self.embed_removed_song(song))
+
+
     def play_next(self, interaction: discord.Interaction):
-        if not self.song_queue.empty():
-            song = self.song_queue.get_nowait()
+        if self.song_queue:
+            song = self.song_queue.pop(0)
+            print(list)
             audio_source = discord.FFmpegPCMAudio(song['source'], **Music.FFMPEG_OPTIONS)
             self.audio_client.play(audio_source, after = lambda e: self.play_next(interaction))
             asyncio.run_coroutine_threadsafe(interaction.channel.send(embed = self.embed_now_playing(song)), self.event_loop)
         else:
-            asyncio.run_coroutine_threadsafe(asyncio.sleep(90), self.event_loop)
             if not self.audio_client.is_playing():
                 asyncio.run_coroutine_threadsafe(self.audio_client.disconnect(), self.event_loop)
                 self.audio_client = None
@@ -141,20 +150,34 @@ class Music(commands.Cog):
         embed.set_thumbnail(url = song['thumbnail'])
         embed.add_field(name = 'Added By', value = song['requestor'], inline = True)
         embed.add_field(name = 'Song By', value = song['author'], inline = True)
-        embed.add_field(name = 'Position in Queue', value = '`{}`'.format(self.song_queue.qsize()), inline = True)
+        embed.add_field(name = 'Position in Queue', value = '`{}`'.format(len(self.song_queue)), inline = True)
         return embed
     
     def embed_no_more_song(self):
         embed = discord.Embed(
             color = discord.Colour.purple(),
-            title = 'No more songs left in the queue'
+            title = 'Queue has ended. No more songs left to play'
+        )
+        return embed
+    
+    def embed_no_songs(self):
+        embed = discord.Embed(
+            color = discord.Color.purple(),
+            title = 'There are no songs in the queue'
+        )
+        return embed
+                    
+    def embed_removed_song(self, song : str):
+        embed = discord.Embed(
+            color = discord.Color.purple(),
+            title = 'Removed song: {}'.format(song)
         )
         return embed
     
     def embed_leaving_channel_idle(self):
         embed = discord.Embed(
             color = discord.Colour.purple(),
-            title = 'Dokkaebi has been quiet for too long. Leaving channel'
+            title = 'No more songs in the queue. Leaving channel...'
         )
         return embed
         
