@@ -24,8 +24,6 @@ class DokkaebiClient(commands.Bot):
     
     async def load_cogs(self) -> None:
         for filename in os.listdir('./cogs'):
-            if 'embeds' in filename:
-                continue
             if filename.endswith('.py'):
                 await self.load_extension(f'cogs.{filename[:-3]}')
                 await self.tree.sync()

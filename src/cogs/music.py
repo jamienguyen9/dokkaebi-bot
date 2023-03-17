@@ -2,7 +2,7 @@ import discord, urllib.parse, urllib.request, re, asyncio, datetime, sys
 from discord import app_commands
 from discord.ext import commands
 from youtube_dl import YoutubeDL
-from cogs import embeds
+from cogs.helpers import embeds
 
 class Music(commands.Cog):
     """Music Cog"""
