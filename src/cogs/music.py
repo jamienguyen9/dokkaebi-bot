@@ -16,7 +16,7 @@ class Music(commands.Cog):
 
     def __init__(self, bot) -> None:
         self.bot = bot
-        self.audio_client = None
+        self.audio_client: discord.VoiceClient = None
         self.song_queue = []
         self.event_loop = asyncio.get_event_loop()
 
@@ -50,9 +50,10 @@ class Music(commands.Cog):
                 await interaction.response.send_message(embed = embeds.add_to_queue(song, self.song_queue))
             else:
                 song = self.song_queue.pop(0)
+                await interaction.response.send_message(embed = embeds.now_playing(song))
                 audio_source = discord.FFmpegPCMAudio(song['source'], **Music.FFMPEG_OPTIONS)
                 self.audio_client.play(audio_source, after = lambda e: self.play_next(interaction))
-                await interaction.response.send_message(embed = embeds.now_playing(song))
+                
         else:
             content = "You are not in a voice channel. Please join one to play music."
             await interaction.response.send_message(content = content)
@@ -71,9 +72,9 @@ class Music(commands.Cog):
                 embed = embeds.no_more_song()
                 await interaction.response.send_message(embed = embed)
             else:
-                await self.audio_client.stop()
+                # stop() stops the client from playing audio then calls play_next() again
+                self.audio_client.stop()
                 await interaction.response.send_message(content="Skipping song...")
-                self.play_next(interaction)
 
 
     @app_commands.command(name = 'queue', description = "View the song queue")
@@ -91,7 +92,7 @@ class Music(commands.Cog):
             title = 'Up Next:',
         )
         for i, item in enumerate(self.song_queue):
-            embed.add_field(name = '{}. `{}`'.format(i, item['title']), value = '', inline = False)
+            embed.add_field(name = '{}. `{}`'.format(i + 1, item['title']), value = '', inline = False)
         await interaction.response.send_message(embed = embed)
 
 
@@ -107,10 +108,10 @@ class Music(commands.Cog):
             await interaction.response.send_message(embed = embeds.no_songs())
             return
         if position > len(self.song_queue):
-            await interaction.response.send_message(content = 'The position you entered is not in this queue. Please try again')
+            await interaction.response.send_message(content = 'The position you entered does not work. Please try again')
             return
-        song = self.song_queue.pop(position - 1)['title']
-        await interaction.response.send_message(embed = embeds.removed_song(song))
+        song_title = self.song_queue.pop(position - 1)['title']
+        await interaction.response.send_message(embed = embeds.removed_song(song_title))
 
 
     def play_next(self, interaction: discord.Interaction) -> None:
@@ -121,7 +122,6 @@ class Music(commands.Cog):
         """
         if self.song_queue:
             song = self.song_queue.pop(0)
-            print(list)
             audio_source = discord.FFmpegPCMAudio(song['source'], **Music.FFMPEG_OPTIONS)
             self.audio_client.play(audio_source, after = lambda e: self.play_next(interaction))
             asyncio.run_coroutine_threadsafe(interaction.channel.send(embed = embeds.now_playing(song)), self.event_loop)
@@ -151,6 +151,7 @@ class Music(commands.Cog):
         with YoutubeDL(Music.YDL_OPTIONS) as ydl:
             song = ydl.extract_info(url, download=False)
 
+        # Truncates the duration string to be a bit more readable if the song is less than an hour
         duration = str(datetime.timedelta(seconds = song['duration']))
         index = 0
         if int(duration[:1]) == 0:
