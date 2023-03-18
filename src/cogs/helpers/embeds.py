@@ -44,7 +44,7 @@ def no_songs() -> Embed:
 def removed_song(song: str) -> Embed:
     embed = Embed(
         color = Colour.purple(),
-        title = 'Removed song: {}'.format(song)
+        title = 'Removed song: `{}`'.format(song)
     )
     return embed
 

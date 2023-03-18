@@ -74,7 +74,7 @@ class Music(commands.Cog):
             else:
                 # stop() stops the client from playing audio then calls play_next() again
                 self.audio_client.stop()
-                await interaction.response.send_message(content="Skipping song...")
+                await interaction.response.send_message(content="**Skipping song...**")
 
 
     @app_commands.command(name = 'queue', description = "View the song queue")
