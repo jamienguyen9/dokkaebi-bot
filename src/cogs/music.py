@@ -114,6 +114,18 @@ class Music(commands.Cog):
         await interaction.response.send_message(embed = embeds.removed_song(song_title))
 
 
+    @app_commands.command(name = 'leave', description = 'Leave the voice channel')
+    async def leave(self, interaction: discord.Interaction) -> None:
+        """Stops playing audio then leaves the channel
+        
+        ### Parameters
+        `interaction` : A discord interaction object
+        """
+        self.song_queue.clear()
+        await self.audio_client.disconnect()
+        await interaction.response.send_message(content = 'Leaving Channel.')
+    
+    
     def play_next(self, interaction: discord.Interaction) -> None:
         """Plays the next song in the queue
         
