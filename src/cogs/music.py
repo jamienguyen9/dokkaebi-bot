@@ -14,7 +14,7 @@ class Music(commands.Cog):
         }
 
 
-    def __init__(self, bot) -> None:
+    def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.audio_client: discord.VoiceClient = None
         self.song_queue = []
@@ -104,14 +104,16 @@ class Music(commands.Cog):
         `interaction` : A discord interaction object
         `position` : Position of the song that you want to remove
         """
-        if not self.song_queue:
-            await interaction.response.send_message(embed = embeds.no_songs())
-            return
-        if position > len(self.song_queue):
-            await interaction.response.send_message(content = 'The position you entered does not work. Please try again')
-            return
-        song_title = self.song_queue.pop(position - 1)['title']
-        await interaction.response.send_message(embed = embeds.removed_song(song_title))
+        voice_state = interaction.user.voice
+        if voice_state:
+            if not self.song_queue:
+                await interaction.response.send_message(embed = embeds.no_songs())
+                return
+            if position > len(self.song_queue):
+                await interaction.response.send_message(content = 'The position you entered does not work. Please try again')
+                return
+            song_title = self.song_queue.pop(position - 1)['title']
+            await interaction.response.send_message(embed = embeds.removed_song(song_title))
 
 
     @app_commands.command(name = 'leave', description = 'Leave the voice channel')
@@ -121,9 +123,15 @@ class Music(commands.Cog):
         ### Parameters
         `interaction` : A discord interaction object
         """
-        self.song_queue.clear()
-        await self.audio_client.disconnect()
-        await interaction.response.send_message(content = 'Leaving Channel.')
+        voice_state = interaction.user.voice
+        if voice_state:
+            if self.audio_client and self.audio_client.is_connected():
+                self.song_queue.clear()
+                await self.audio_client.disconnect()
+                self.audio_client = None
+                await interaction.response.send_message(content = 'Leaving Channel.')
+            else:
+                await interaction.response.send_message(content = "Bot is not in a channel.")
     
     
     def play_next(self, interaction: discord.Interaction) -> None:
