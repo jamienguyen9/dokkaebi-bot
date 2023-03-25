@@ -24,21 +24,23 @@ class Pokemon_Info(commands.Cog):
         dex_response = None
         try:
             # TODO: add try/catch exception to prevent 404s
-            info_response = requests.get(Pokemon_Info.BASE_URL + 'pokemon/{}/'.format(pokemon_or_id))
-            dex_response = requests.get(Pokemon_Info.BASE_DEX_URL + 'pokemon/{}/'.format(pokemon_or_id))
+            info_response = requests.get(Pokemon_Info.BASE_URL + 'pokemon/{}/'.format(pokemon_or_id.lower()))
+            dex_response = requests.get(Pokemon_Info.BASE_DEX_URL + '{}/'.format(pokemon_or_id.lower()))
         except requests.exceptions.HTTPError as err:
             print(err)
         finally:
-            if info_response and dex_response and info_response.status_code == 200 and dex_response == 200:
+            if info_response.status_code == 200 and dex_response.status_code == 200:
                 pokeinfo = info_response.json()
                 dexinfo = dex_response.json()
 
                 embed = embeds.poke_info(pokeinfo, dexinfo)
                 await interaction.response.send_message(embed = embed)
             else:
+                print(info_response.status_code)
+                print(dex_response.status_code)
                 await interaction.response.send_message(embed = embeds.cannot_find_poke_info())
     
-
+    '''
     @app_commands.command(name = 'poke_item', description = 'Get information on a pokemon item')
     async def poke_item(self, interaction: discord.Interaction, item_or_id: str) -> None:
         pass
@@ -51,6 +53,7 @@ class Pokemon_Info(commands.Cog):
     @app_commands.command(name = 'poke_ability', description = 'Get information on a pokemon ability')
     async def poke_ability(self, interaction: discord.Interaction, pokemon_or_id: str) -> None:
         pass
+    '''
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Pokemon_Info(bot))

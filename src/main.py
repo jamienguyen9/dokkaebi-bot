@@ -30,14 +30,5 @@ class DokkaebiClient(commands.Bot):
                 await self.load_extension(f'cogs.{filename[:-3]}')
                 await self.tree.sync()
 
-    @app_commands.command(name = 'reload', description = 'Reloads new cogs')
-    async def reload(self) -> None:
-        """Reloads all cog files"""
-        for filename in os.listdir('./cogs'):
-            if filename.endswith('.py'):
-                await self.reload_extension(f'cogs.{filename[:-3]}')
-                await self.tree.sync()
-
-
 client = DokkaebiClient()
 client.run(BOT_TOKEN)

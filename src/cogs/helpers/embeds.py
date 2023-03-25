@@ -1,3 +1,4 @@
+import re
 from discord import Embed
 from discord import Colour
 
@@ -59,7 +60,7 @@ def poke_info(pokemon_info : dict, pokedex_entry : dict) -> Embed:
     embed = Embed(
         color = Colour.red(),
         title = pokemon_info['name'].capitalize(),
-        description = pokedex_entry['flavor_text_entries'][0]
+        description = re.sub('[^A-Za-z0-9]+', ' ', pokedex_entry['flavor_text_entries'][0]['flavor_text'])
     )
     embed.set_thumbnail(url = pokemon_info['sprites']['front_default'])
     embed.add_field(name = 'Pokedex Number', value = str(pokemon_info['id']).zfill(4), inline = True)
@@ -67,9 +68,9 @@ def poke_info(pokemon_info : dict, pokedex_entry : dict) -> Embed:
     types = ''
     for type_info in pokemon_info['types']:
         if not types:
-            types = type_info['type']['name']
+            types = type_info['type']['name'].capitalize()
         else:
-            types = types + ' / ' + type_info['type']['name']
+            types = types + ' / ' + type_info['type']['name'].capitalize()
     embed.add_field(name = 'Types', value = types, inline = True)
     embed.add_field(name = "\u200B", value = "\u200B")
     
@@ -78,16 +79,18 @@ def poke_info(pokemon_info : dict, pokedex_entry : dict) -> Embed:
 
     embed.add_field(name = 'Height', value = height, inline = True)
     embed.add_field(name = 'Weight', value = weight, inline = True)
+    embed.add_field(name = 'Catch Rate', value = pokedex_entry['capture_rate'], inline = True)
 
     abilities = ''
     for ability_info in pokemon_info['abilities']:
         if not abilities:
-            abilities = ability_info['ability']['name']
+            abilities = ability_info['ability']['name'].capitalize()
         else:
-            abilities = abilities + ', ' + ability_info['ability']['name']
-        if abilities['is_hidden']:
+            abilities = abilities + ', ' + ability_info['ability']['name'].capitalize()
+        if ability_info['is_hidden']:
             abilities = abilities + ' (hidden)'
     embed.add_field(name = 'Abilities', value = abilities, inline = False)
+
 
     return embed
 
