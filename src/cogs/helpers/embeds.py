@@ -54,3 +54,46 @@ def leaving_channel_idle() -> Embed:
         title = 'No more songs in the queue. Leaving channel...'
     )
     return embed
+
+def poke_info(pokemon_info : dict, pokedex_entry : dict) -> Embed:
+    embed = Embed(
+        color = Colour.red(),
+        title = pokemon_info['name'].capitalize(),
+        description = pokedex_entry['flavor_text_entries'][0]
+    )
+    embed.set_thumbnail(url = pokemon_info['sprites']['front_default'])
+    embed.add_field(name = 'Pokedex Number', value = str(pokemon_info['id']).zfill(4), inline = True)
+    
+    types = ''
+    for type_info in pokemon_info['types']:
+        if not types:
+            types = type_info['type']['name']
+        else:
+            types = types + ' / ' + type_info['type']['name']
+    embed.add_field(name = 'Types', value = types, inline = True)
+    embed.add_field(name = "\u200B", value = "\u200B")
+    
+    height = str(pokemon_info['height'] / 10.0) + ' m'
+    weight = str(pokemon_info['weight'] / 10.0) + ' kg'
+
+    embed.add_field(name = 'Height', value = height, inline = True)
+    embed.add_field(name = 'Weight', value = weight, inline = True)
+
+    abilities = ''
+    for ability_info in pokemon_info['abilities']:
+        if not abilities:
+            abilities = ability_info['ability']['name']
+        else:
+            abilities = abilities + ', ' + ability_info['ability']['name']
+        if abilities['is_hidden']:
+            abilities = abilities + ' (hidden)'
+    embed.add_field(name = 'Abilities', value = abilities, inline = False)
+
+    return embed
+
+def cannot_find_poke_info() -> Embed:
+    embed = Embed(
+        color = Colour.red(),
+        title = 'Cannot find information with the input entered. Please try again.'
+    )
+    return embed
